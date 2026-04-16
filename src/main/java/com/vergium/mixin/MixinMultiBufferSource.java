@@ -10,22 +10,17 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
- * FIXED: Real redirection of 3rd-party mod rendering to Vergium's bridge.
+ * FIXED: Changed from interface to abstract class to support injectors.
+ * Intercepts 3rd-party mod rendering.
  */
 @Mixin(MultiBufferSource.class)
-public interface MixinMultiBufferSource {
+public abstract class MixinMultiBufferSource {
 
     @Inject(method = "getBuffer", at = @At("HEAD"), cancellable = true)
-    default void onGetBuffer(RenderType pRenderType, CallbackInfoReturnable<VertexConsumer> cir) {
+    private void onGetBuffer(RenderType pRenderType, CallbackInfoReturnable<VertexConsumer> cir) {
         String typeStr = pRenderType.toString();
-        
-        // Intercept heavy rendering types commonly used by mods
         if (typeStr.contains("entity_solid") || typeStr.contains("entity_cutout")) {
-            // Signal the bridge that a mod is drawing
             ModBridge.bridgeDraw("interceptor", 0);
-            
-            // In a fully integrated state, we would return Vergium's VertexConsumer here:
-            // cir.setReturnValue(VergiumBatchRenderer.getBufferForLayer(typeStr));
         }
     }
 }
