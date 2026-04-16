@@ -1,5 +1,6 @@
 package com.vergium;
 
+import com.vergium.core.render.ResourceManager;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
@@ -12,8 +13,8 @@ public class Vergium {
 
     public Vergium() {
         FMLJavaModLoadingContext.get().getModEventBus().addListener(this::setupClient);
-        // Add shutdown hook for cleanup
-        Runtime.getRuntime().addShutdownHook(new Thread(com.vergium.core.render.ResourceManager::cleanup));
+        // Clean cleanup on JVM shutdown
+        Runtime.getRuntime().addShutdownHook(new Thread(ResourceManager::cleanup));
         LOGGER.info("Vergium optimization mod initialized!");
     }
 
