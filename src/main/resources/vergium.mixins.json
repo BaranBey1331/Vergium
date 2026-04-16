@@ -3,6 +3,7 @@
   "minVersion": "0.8",
   "package": "com.vergium.mixin",
   "compatibilityLevel": "JAVA_17",
+  "refmap": "vergium.refmap.json",
   "mixins": [
   ],
   "client": [

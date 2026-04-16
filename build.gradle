@@ -21,7 +21,7 @@ minecraft {
     copyIdeResources = true
 
     mixin {
-        add sourceSets.main, "vergium.mixins.refmap.json"
+        add sourceSets.main, "vergium.refmap.json"
         config "vergium.mixins.json"
     }
 
