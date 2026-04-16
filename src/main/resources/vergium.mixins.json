@@ -7,7 +7,8 @@
   ],
   "client": [
     "MixinLevelRenderer",
-    "MixinRenderSection"
+    "MixinRenderSection",
+    "MixinEntityRenderDispatcher"
   ],
   "injectors": {
     "defaultRequire": 1

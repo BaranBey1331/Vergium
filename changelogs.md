@@ -1,5 +1,13 @@
 # Vergium Changelogs
 
+## [0.4.0] - 2026-04-16
+### Added
+- **Phase 4: Advanced GPU & Entity Optimization**
+  - Implemented `CommandBuffer` for Multi-Draw Indirect (MDI) rendering path.
+  - Added `MixinEntityRenderDispatcher` to apply hierarchical culling to all mobs/entities.
+  - Optimized fragment shaders with `mediump` precision specifically for mobile RDNA 3 (Xclipse 940).
+  - Implemented early alpha discard in fragment shaders to save memory bandwidth.
+
 ## [0.3.0] - 2026-04-16
 ### Added
 - **Phase 3: Vertex Packing & Shader Optimization**
