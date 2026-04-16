@@ -1,5 +1,6 @@
 package com.vergium.core.render;
 
+import com.vergium.core.memory.MemoryManager;
 import java.util.HashSet;
 import java.util.Set;
 import org.lwjgl.opengl.GL11;
@@ -31,6 +32,7 @@ public class ResourceManager {
         SHADERS.clear();
         VAOS.clear();
         
+        MemoryManager.freeAll();
         System.gc(); // Hint to clean up DirectByteBuffers
     }
 }
