@@ -1,7 +1,8 @@
 {
   "mappings": {
     "com/vergium/mixin/MixinMultiBufferSource": {
-      "getBuffer": "Lnet/minecraft/client/renderer/MultiBufferSource;m_6299_(Lnet/minecraft/client/renderer/RenderType;)Lcom/mojang/blaze3d/vertex/VertexConsumer;"
+      "net.minecraft.client.renderer.MultiBufferSource$BufferSource": "net/minecraft/client/renderer/MultiBufferSource$BufferSource",
+      "getBuffer": "Lnet/minecraft/client/renderer/MultiBufferSource$BufferSource;m_6299_(Lnet/minecraft/client/renderer/RenderType;)Lcom/mojang/blaze3d/vertex/VertexConsumer;"
     },
     "com/vergium/mixin/MixinLevelRenderer": {
       "renderLevel": "Lnet/minecraft/client/renderer/LevelRenderer;m_109599_(Lcom/mojang/blaze3d/vertex/PoseStack;FJZLnet/minecraft/client/Camera;Lnet/minecraft/client/renderer/GameRenderer;Lnet/minecraft/client/renderer/LightTexture;Lorg/joml/Matrix4f;)V",
@@ -14,7 +15,8 @@
   "data": {
     "searge": {
       "com/vergium/mixin/MixinMultiBufferSource": {
-        "getBuffer": "Lnet/minecraft/client/renderer/MultiBufferSource;m_6299_(Lnet/minecraft/client/renderer/RenderType;)Lcom/mojang/blaze3d/vertex/VertexConsumer;"
+        "net.minecraft.client.renderer.MultiBufferSource$BufferSource": "net/minecraft/client/renderer/MultiBufferSource$BufferSource",
+        "getBuffer": "Lnet/minecraft/client/renderer/MultiBufferSource$BufferSource;m_6299_(Lnet/minecraft/client/renderer/RenderType;)Lcom/mojang/blaze3d/vertex/VertexConsumer;"
       },
       "com/vergium/mixin/MixinLevelRenderer": {
         "renderLevel": "Lnet/minecraft/client/renderer/LevelRenderer;m_109599_(Lcom/mojang/blaze3d/vertex/PoseStack;FJZLnet/minecraft/client/Camera;Lnet/minecraft/client/renderer/GameRenderer;Lnet/minecraft/client/renderer/LightTexture;Lorg/joml/Matrix4f;)V",

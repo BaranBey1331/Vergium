@@ -10,10 +10,9 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
- * FIXED: Changed from interface to abstract class to support injectors.
- * Intercepts 3rd-party mod rendering.
+ * FIXED: Target the MultiBufferSource.BufferSource class explicitly to resolve interface mismatch.
  */
-@Mixin(MultiBufferSource.class)
+@Mixin(targets = "net.minecraft.client.renderer.MultiBufferSource$BufferSource")
 public abstract class MixinMultiBufferSource {
 
     @Inject(method = "getBuffer", at = @At("HEAD"), cancellable = true)
