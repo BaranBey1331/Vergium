@@ -1,5 +1,12 @@
 # Vergium Changelogs
 
+## [1.0.0-MAJOR] - 2026-04-16
+### Added
+- **Phase 5: Major Vulkan-Native Optimization**
+  - Implemented **Uniform Buffer Objects (UBO)** to consolidate matrix updates into a single Vulkan buffer update call.
+  - Added **State Sorting Engine** to reorder draw calls by shader and texture, minimizing Vulkan pipeline transitions in the ANGLE layer.
+  - Optimized the rendering pipeline for the Samsung Xclipse 940 (AMD RDNA 3) GPU architecture.
+
 ## [0.4.0] - 2026-04-16
 ### Added
 - **Phase 4: Advanced GPU & Entity Optimization**
