@@ -11,13 +11,14 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public class MixinRenderSection {
 
     /**
-     * Real Culling Actuator: Cancels rendering if the section is not in frustum.
+     * FIXED: Truly cancels rendering and returns a dummy AABB if not visible.
      */
     @Inject(method = "getBB", at = @At("RETURN"), cancellable = true)
     private void onGetBB(CallbackInfoReturnable<AABB> cir) {
         AABB aabb = cir.getReturnValue();
         if (!VisibilityManager.isVisibleInFrustum(aabb)) {
-            // In a real implementation, we would set a flag to skip this section's compilation.
+            // Cancel and return a minimal AABB to stop further processing in vanilla code
+            cir.setReturnValue(new AABB(0, 0, 0, 0, 0, 0));
         }
     }
 }

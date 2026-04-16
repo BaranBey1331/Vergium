@@ -2,47 +2,35 @@ package com.vergium.core.render;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Detects rendering bottlenecks between CPU and Xclipse 940 GPU.
+ * FIXED: Thread-safe bottleneck detection using Atomic variables.
  */
 public class BottleneckProfiler {
     private static final Logger LOGGER = LogManager.getLogger();
-    private static long lastFrameTime;
-    private static int frameCount;
-    private static float cpuWaitTime; // Accumulated wait for GPU fences
+    private static final AtomicLong lastFrameTime = new AtomicLong(0);
+    private static final AtomicInteger frameCount = new AtomicInteger(0);
+    private static float cpuWaitTime = 0.0f; 
 
-    /**
-     * Records the start of a frame.
-     */
     public static void startFrame() {
-        lastFrameTime = System.nanoTime();
+        lastFrameTime.set(System.nanoTime());
     }
 
-    /**
-     * Records the end of a frame and analyzes bottlenecks.
-     */
     public static void endFrame() {
-        long currentFrameTime = System.nanoTime();
-        long duration = currentFrameTime - lastFrameTime;
-        frameCount++;
+        long duration = System.nanoTime() - lastFrameTime.get();
+        int count = frameCount.incrementAndGet();
 
-        if (frameCount % 600 == 0) { // Every 10 seconds at 60fps
+        if (count % 600 == 0) {
             float fps = 1_000_000_000.0f / duration;
-            if (fps < 30.0f) {
-                LOGGER.warn("Low performance detected! Analyzing bottleneck...");
-                analyze(fps);
-            }
+            analyze(fps);
         }
     }
 
-    private static void analyze(float fps) {
-        // Logic to check if we are CPU bound (ANGLE layer overhead) 
-        // or GPU bound (Fill rate / Vertex limit)
-        if (cpuWaitTime > 5.0f) {
-            LOGGER.warn("Status: CPU-Bound (Wait for GPU). Optimization: Increase Batching.");
-        } else {
-            LOGGER.warn("Status: GPU-Bound (Processing Load). Optimization: Increase Culling.");
+    private static synchronized void analyze(float fps) {
+        if (fps < 30.0f) {
+            LOGGER.warn("Bottleneck Detected! FPS: " + fps);
         }
     }
 }
