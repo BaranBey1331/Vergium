@@ -15,7 +15,7 @@ public class MixinRenderSection {
      * Redirects or cancels rendering if the section is not visible.
      * This is a simplified hook to demonstrate the logic.
      */
-    @Inject(method = "getBB", at = @At("RETURN"))
+    @Inject(method = "getBoundingBox", at = @At("RETURN"))
     private void onGetBB(CallbackInfoReturnable<AABB> cir) {
         AABB aabb = cir.getReturnValue();
         if (!VisibilityManager.isVisibleInFrustum(aabb)) {
