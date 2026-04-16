@@ -12,6 +12,8 @@ public class Vergium {
 
     public Vergium() {
         FMLJavaModLoadingContext.get().getModEventBus().addListener(this::setupClient);
+        // Add shutdown hook for cleanup
+        Runtime.getRuntime().addShutdownHook(new Thread(com.vergium.core.render.ResourceManager::cleanup));
         LOGGER.info("Vergium optimization mod initialized!");
     }
 
