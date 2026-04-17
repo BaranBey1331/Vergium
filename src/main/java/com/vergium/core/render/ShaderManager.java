@@ -53,6 +53,14 @@ public final class ShaderManager {
         SHADERS.clear();
     }
 
+    public static int getLoadedShaderCount() {
+        return SHADERS.size();
+    }
+
+    public static Integer getProgram(String name) {
+        return SHADERS.get(name);
+    }
+
     private static boolean isGlContextAvailable() {
         try {
             return GL.getCapabilities() != null;

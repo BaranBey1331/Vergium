@@ -1,5 +1,53 @@
 # Vergium Changelog
 
+## [2.2.0-HARDENING-AND-SIMULATION] - 2026-04-17
+
+### Added
+1. Added a second hardening plan for the aggressive test-expansion and architecture pass.
+2. Added `junit-jupiter-params` to support large-scale parameterized regression coverage.
+3. Added `ChunkBuildResult` as a deterministic chunk planning artifact.
+4. Added `DispatchPipeline` to decouple dispatch logic from a concrete fast-path implementation.
+5. Added `InstanceBatchTracker` to separate instance planning from GL submission.
+6. Added `FpsSimulationScenario` for synthetic render workload inputs.
+7. Added `FpsSimulationReport` for deterministic workload analysis outputs.
+8. Added `FpsSimulator` to simulate FPS, bottlenecks, fallback behavior, and crash risk without a live client.
+9. Added `BufferPoolMetricsTest`.
+10. Added `MemoryManagerParameterizedTest`.
+11. Added `NativeBufferParameterizedTest`.
+12. Added `InstanceBatchTrackerTest`.
+13. Added `ResourceSubsystemTest`.
+14. Added `BottleneckProfilerMetricsTest`.
+15. Added `VertexFormatTest`.
+16. Added `ModBridgeTest`.
+17. Added `VergiumChunkBuilderTest`.
+18. Added `VergiumRenderDispatcherTest`.
+19. Added `FpsSimulatorTest`.
+
+### Changed
+20. Bumped the project version to `2.2.0`.
+21. Expanded automated verification from the earlier low-20s range to **344 passing test executions**.
+22. Reworked `VergiumChunkBuilder` into a deterministic, testable chunk geometry planner.
+23. Reworked `VergiumRenderDispatcher` to use a lazily resolved pipeline and safer fallback staging.
+24. Hardened `VulkanFastPath` availability checks against missing LWJGL native libraries.
+25. Reworked `EntityInstancer` to use `InstanceBatchTracker` instead of mixing planning and GL mutation in one path.
+26. Reworked `VergiumBatchRenderer` so mesh payloads can be staged meaningfully in fallback mode.
+27. Reworked `ModBridge` to track bridged vertex counts for diagnostics and tests.
+28. Reworked `BufferPool` to expose acquire/release/rejection metrics.
+29. Reworked `MemoryManager` to track peak native-memory pressure.
+30. Reworked `NativeBuffer` to support byte-array writes for staged payload transfers.
+31. Reworked `CommandBuffer` to reject invalid negative draw parameters and report command capacity.
+32. Reworked `BottleneckProfiler` to track average frame time and slow-frame counts.
+33. Reworked `ResourceManager` cleanup to reset related tracked subsystems consistently.
+34. Reworked `ShaderManager`, `UniformBufferManager`, and `OcclusionQueryManager` with additional test/reset hooks.
+35. Updated README for the simulation-oriented hardening pass.
+36. Updated TODO with simulator and CI follow-up tasks.
+
+### Fixed
+37. Fixed test-time crashes caused by eager LWJGL/OpenGL initialization when no native library was present.
+38. Fixed the chunk build path so it no longer behaves like an empty placeholder under non-GL environments.
+39. Fixed the dispatch architecture so non-GL environments fall back deterministically instead of behaving opaquely.
+40. Fixed several previously under-specified subsystems so they can be validated outside the Minecraft runtime.
+
 ## [2.1.0-MAJOR-STABILIZATION] - 2026-04-17
 
 ### Added

@@ -49,6 +49,9 @@ public final class ResourceManager {
         deleteTrackedShaders();
         deleteTrackedVaos();
         MemoryManager.freeAll();
+        ShaderManager.clear();
+        UniformBufferManager.resetForTests();
+        OcclusionQueryManager.clear();
     }
 
     private static void deleteTrackedBuffers() {
@@ -72,5 +75,11 @@ public final class ResourceManager {
         } catch (Throwable throwable) {
             LOGGER.debug("Skipping {} cleanup for id {} because no valid GL context was available.", kind, id, throwable);
         }
+    }
+
+    static void clearTrackedStateForTests() {
+        BUFFERS.clear();
+        SHADERS.clear();
+        VAOS.clear();
     }
 }

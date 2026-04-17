@@ -13,6 +13,7 @@ public final class VergiumBatchRenderer {
 
     private static final ConcurrentHashMap<String, NativeBuffer> RENDER_BATCHES = new ConcurrentHashMap<>();
     private static final AtomicInteger FLUSH_COUNT = new AtomicInteger();
+    private static final AtomicInteger STAGED_VERTEX_COUNT = new AtomicInteger();
 
     private VergiumBatchRenderer() {
     }
@@ -39,6 +40,7 @@ public final class VergiumBatchRenderer {
     public static void clearAll() {
         RENDER_BATCHES.values().forEach(NativeBuffer::reset);
         RENDER_BATCHES.clear();
+        STAGED_VERTEX_COUNT.set(0);
     }
 
     public static int getBatchCount() {
@@ -51,6 +53,22 @@ public final class VergiumBatchRenderer {
 
     public static Set<String> getTrackedLayers() {
         return Set.copyOf(RENDER_BATCHES.keySet());
+    }
+
+    public static void stageMesh(String layerName, com.vergium.core.engine.VergiumMeshBuilder meshBuilder) {
+        if (meshBuilder == null || meshBuilder.isEmpty()) {
+            return;
+        }
+
+        NativeBuffer layerBuffer = getBufferForLayer(layerName);
+        byte[] payload = new byte[meshBuilder.getBuffer().readableBytes()];
+        meshBuilder.getBuffer().readableSlice().get(payload);
+        layerBuffer.putBytes(payload);
+        STAGED_VERTEX_COUNT.addAndGet(meshBuilder.getVertexCount());
+    }
+
+    public static int getStagedVertexCount() {
+        return STAGED_VERTEX_COUNT.get();
     }
 
     private static String normalizeLayerName(String layerName) {

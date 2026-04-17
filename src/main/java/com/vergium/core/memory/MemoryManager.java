@@ -23,6 +23,7 @@ public final class MemoryManager {
     private static final Set<ByteBuffer> ALLOCATED_BUFFERS =
             Collections.newSetFromMap(new IdentityHashMap<>());
     private static final AtomicLong TRACKED_BYTES = new AtomicLong();
+    private static final AtomicLong PEAK_TRACKED_BYTES = new AtomicLong();
 
     private MemoryManager() {
     }
@@ -36,7 +37,8 @@ public final class MemoryManager {
         synchronized (LOCK) {
             ALLOCATED_BUFFERS.add(buffer);
         }
-        TRACKED_BYTES.addAndGet(size);
+        long tracked = TRACKED_BYTES.addAndGet(size);
+        PEAK_TRACKED_BYTES.accumulateAndGet(tracked, Math::max);
         return buffer;
     }
 
@@ -84,5 +86,9 @@ public final class MemoryManager {
 
     public static long getTrackedBytes() {
         return TRACKED_BYTES.get();
+    }
+
+    public static long getPeakTrackedBytes() {
+        return PEAK_TRACKED_BYTES.get();
     }
 }

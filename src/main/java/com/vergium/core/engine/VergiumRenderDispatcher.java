@@ -1,8 +1,10 @@
 package com.vergium.core.engine;
 
+import com.vergium.core.pipeline.DispatchPipeline;
 import com.vergium.core.pipeline.VulkanFastPath;
 import com.vergium.core.render.CommandBuffer;
 import com.vergium.core.render.VergiumBatchRenderer;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -11,34 +13,144 @@ import org.apache.logging.log4j.Logger;
  */
 public final class VergiumRenderDispatcher {
     private static final Logger LOGGER = LogManager.getLogger();
-    private static final VulkanFastPath VULKAN_PIPELINE = new VulkanFastPath();
+    private static final DispatchPipeline DEFAULT_PIPELINE = new LazyDispatchPipeline();
+    private static final AtomicInteger DISPATCH_COUNT = new AtomicInteger();
+    private static final AtomicInteger FALLBACK_COUNT = new AtomicInteger();
+
+    private static volatile DispatchPipeline pipeline = DEFAULT_PIPELINE;
 
     private VergiumRenderDispatcher() {
     }
 
-    public static void dispatch(VergiumMeshBuilder mesh) {
+    public static DispatchResult dispatch(VergiumMeshBuilder mesh) {
         if (mesh == null || mesh.isEmpty()) {
-            return;
+            return new DispatchResult(DispatchMode.SKIPPED_EMPTY, 0, 0);
         }
 
-        VergiumBatchRenderer.getBufferForLayer("custom_engine_layer");
+        DISPATCH_COUNT.incrementAndGet();
 
-        if (!VULKAN_PIPELINE.isAvailable()) {
-            return;
+        if (!pipeline.isAvailable()) {
+            VergiumBatchRenderer.stageMesh("custom_engine_layer", mesh);
+            int vertexCount = mesh.getVertexCount();
+            mesh.reset();
+            FALLBACK_COUNT.incrementAndGet();
+            return new DispatchResult(DispatchMode.FALLBACK_STAGED, vertexCount, 1);
         }
 
         CommandBuffer commands = new CommandBuffer(1);
         commands.addCommand(mesh.getVertexCount(), 1, 0, 0);
-        VULKAN_PIPELINE.setCommandBuffer(commands);
+        pipeline.setCommandBuffer(commands);
 
         try {
-            VULKAN_PIPELINE.prepare();
-            VULKAN_PIPELINE.render(0, mesh.getVertexCount());
-            VULKAN_PIPELINE.finish();
+            pipeline.prepare();
+            pipeline.render(0, mesh.getVertexCount());
+            pipeline.finish();
+            return new DispatchResult(DispatchMode.DIRECT_GPU, mesh.getVertexCount(), commands.getCommandCount());
         } catch (RuntimeException ex) {
             LOGGER.debug("Vergium fast-path dispatch skipped because the GL context was not ready.", ex);
+            VergiumBatchRenderer.stageMesh("custom_engine_layer", mesh);
+            FALLBACK_COUNT.incrementAndGet();
+            return new DispatchResult(DispatchMode.FALLBACK_STAGED, mesh.getVertexCount(), commands.getCommandCount());
         } finally {
             mesh.reset();
+        }
+    }
+
+    static void setPipelineForTests(DispatchPipeline testPipeline) {
+        pipeline = testPipeline == null ? DEFAULT_PIPELINE : testPipeline;
+    }
+
+    static void resetForTests() {
+        pipeline = DEFAULT_PIPELINE;
+        DISPATCH_COUNT.set(0);
+        FALLBACK_COUNT.set(0);
+    }
+
+    public static int getDispatchCount() {
+        return DISPATCH_COUNT.get();
+    }
+
+    public static int getFallbackCount() {
+        return FALLBACK_COUNT.get();
+    }
+
+    public enum DispatchMode {
+        SKIPPED_EMPTY,
+        DIRECT_GPU,
+        FALLBACK_STAGED
+    }
+
+    public record DispatchResult(DispatchMode mode, int vertexCount, int commandCount) {
+    }
+
+    private static final class LazyDispatchPipeline implements DispatchPipeline {
+        private volatile DispatchPipeline delegate;
+
+        @Override
+        public boolean isAvailable() {
+            return resolve().isAvailable();
+        }
+
+        @Override
+        public void setCommandBuffer(CommandBuffer commands) {
+            resolve().setCommandBuffer(commands);
+        }
+
+        @Override
+        public void prepare() {
+            resolve().prepare();
+        }
+
+        @Override
+        public void render(int bufferId, int vertexCount) {
+            resolve().render(bufferId, vertexCount);
+        }
+
+        @Override
+        public void finish() {
+            resolve().finish();
+        }
+
+        private DispatchPipeline resolve() {
+            DispatchPipeline current = delegate;
+            if (current != null) {
+                return current;
+            }
+
+            synchronized (this) {
+                if (delegate == null) {
+                    try {
+                        delegate = new VulkanFastPath();
+                    } catch (Throwable throwable) {
+                        LOGGER.debug("Falling back to unavailable dispatch pipeline because VulkanFastPath could not initialize.", throwable);
+                        delegate = new UnavailableDispatchPipeline();
+                    }
+                }
+                return delegate;
+            }
+        }
+    }
+
+    private static final class UnavailableDispatchPipeline implements DispatchPipeline {
+        @Override
+        public boolean isAvailable() {
+            return false;
+        }
+
+        @Override
+        public void setCommandBuffer(CommandBuffer commands) {
+        }
+
+        @Override
+        public void prepare() {
+        }
+
+        @Override
+        public void render(int bufferId, int vertexCount) {
+        }
+
+        @Override
+        public void finish() {
         }
     }
 }

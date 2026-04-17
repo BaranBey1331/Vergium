@@ -36,6 +36,18 @@ public final class NativeBuffer {
         position += Byte.BYTES;
     }
 
+    public void putBytes(byte[] values) {
+        if (values == null || values.length == 0) {
+            return;
+        }
+
+        ensureWritable(values.length);
+        ByteBuffer duplicate = buffer.duplicate().order(ByteOrder.nativeOrder());
+        duplicate.position(position);
+        duplicate.put(values);
+        position += values.length;
+    }
+
     public void putShort(short value) {
         ensureWritable(Short.BYTES);
         buffer.putShort(position, value);
@@ -82,6 +94,10 @@ public final class NativeBuffer {
 
     public boolean isEmpty() {
         return position == 0;
+    }
+
+    public int readableBytes() {
+        return position;
     }
 
     private void ensureWritable(int bytes) {

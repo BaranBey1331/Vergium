@@ -52,6 +52,10 @@ public final class UniformBufferManager {
         return uboId;
     }
 
+    static void resetForTests() {
+        uboId = 0;
+    }
+
     private static boolean isGlContextAvailable() {
         try {
             return GL.getCapabilities() != null;

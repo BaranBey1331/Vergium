@@ -75,6 +75,15 @@ public final class OcclusionQueryManager {
         return GL15.glGetQueryObjecti(queryId, GL15.GL_QUERY_RESULT);
     }
 
+    public static int getPooledQueryCount() {
+        return QUERY_COUNT.get();
+    }
+
+    static void clear() {
+        QUERY_POOL.clear();
+        QUERY_COUNT.set(0);
+    }
+
     private static boolean isGlContextAvailable() {
         try {
             return GL.getCapabilities() != null;

@@ -23,6 +23,9 @@ public final class CommandBuffer {
     }
 
     public void addCommand(int count, int instanceCount, int first, int baseInstance) {
+        if (count < 0 || instanceCount < 0 || first < 0 || baseInstance < 0) {
+            throw new IllegalArgumentException("Indirect draw commands must be non-negative");
+        }
         ensureCapacity(COMMAND_STRIDE_BYTES);
         buffer.putInt(count);
         buffer.putInt(instanceCount);
@@ -42,6 +45,10 @@ public final class CommandBuffer {
 
     public boolean isEmpty() {
         return commandCount == 0;
+    }
+
+    public int capacityInCommands() {
+        return buffer.capacity() / COMMAND_STRIDE_BYTES;
     }
 
     public ByteBuffer getBuffer() {
