@@ -53,6 +53,11 @@
 44. Removed the brittle `MixinRenderSection` path from the active mixin config.
 45. Removed misleading documentation that implied a finished engine replacement.
 
+### Release Notes
+- Main branch was cleaned so generated `.gradle/` and `build/` artifacts are no longer versioned.
+- The 2.1.0 line now reflects the actual repository state, tested pure-Java infrastructure, and safer experimental rendering behavior.
+- Verification completed with `./gradlew test build --stacktrace` and `./check_integrity.sh` before publish.
+
 ## [2.0.0-ENGINE-OVERHAUL] - 2026-04-16
 
 Initial repository bootstrap and experimental rendering prototypes.
