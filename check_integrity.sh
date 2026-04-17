@@ -1,35 +1,43 @@
 #!/bin/bash
+set -euo pipefail
 
-echo "🚀 Vergium CI/CD Integrity Checker başlatılıyor..."
+echo "🚀 Vergium integrity check starting..."
 
-# 1. Dosya Kontrolleri
-echo "🔍 Kritik dosyalar kontrol ediliyor..."
-FILES=("src/main/resources/pack.mcmeta" "src/main/resources/META-INF/mods.toml" "build.gradle" "settings.gradle")
+FILES=(
+  "src/main/resources/pack.mcmeta"
+  "src/main/resources/META-INF/mods.toml"
+  "src/main/resources/vergium.mixins.json"
+  "build.gradle"
+  "settings.gradle"
+)
 
+echo "🔍 Checking required files..."
 for file in "${FILES[@]}"; do
-    if [ ! -f "$file" ]; then
-        echo "❌ HATA: $file bulunamadı!"
-        exit 1
-    fi
+  if [ ! -f "$file" ]; then
+    echo "❌ Missing required file: $file"
+    exit 1
+  fi
 done
-echo "✅ Dosya kontrolleri başarılı."
+echo "✅ Required files are present."
 
-# 2. Mixin Konfigürasyonu
-echo "🔍 Mixin konfigürasyonu kontrol ediliyor..."
-if ! grep -q "vergium.mixins.json" src/main/resources/META-INF/mods.toml; then
-    echo "❌ HATA: mods.toml içinde mixin konfigürasyonu eksik!"
-    exit 1
-fi
-echo "✅ Mixin yapılandırması doğrulanmış."
-
-# 3. Derleme Testi (Dry Run)
-echo "🔨 Derleme testi yapılıyor (./gradlew compileJava)..."
-if ./gradlew compileJava; then
-    echo "✅ Derleme başarılı."
-else
-    echo "❌ HATA: Kod derlenemiyor! Lütfen hataları kontrol edin."
-    exit 1
+echo "🔍 Validating mixin configuration..."
+if ! grep -q '"MixinLevelRenderer"' src/main/resources/vergium.mixins.json; then
+  echo "❌ Mixin config is missing MixinLevelRenderer."
+  exit 1
 fi
 
-echo "🎉 Tüm kontroller başarıyla tamamlandı! Push etmeye hazırsınız."
-exit 0
+if ! grep -q 'config="vergium.mixins.json"' src/main/resources/META-INF/mods.toml; then
+  echo "❌ mods.toml is missing the Vergium mixin config."
+  exit 1
+fi
+echo "✅ Mixin configuration looks valid."
+
+echo "🧪 Running unit tests..."
+./gradlew test --no-daemon
+echo "✅ Unit tests passed."
+
+echo "🔨 Running full build..."
+./gradlew build --no-daemon
+echo "✅ Build passed."
+
+echo "🎉 Vergium integrity check completed successfully."

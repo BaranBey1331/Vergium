@@ -2,27 +2,28 @@ package com.vergium.core.render;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import org.lwjgl.opengl.GL15;
-import org.lwjgl.opengl.GL31;
-import org.lwjgl.opengl.GL40;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * Manages indirect draw commands for Multi-Draw Indirect (MDI).
- * Specifically optimized for RDNA 3 GPUs (Xclipse 940).
+ * CPU-side store for draw-indirect commands.
  */
-public class CommandBuffer {
-    private final ByteBuffer buffer;
+public final class CommandBuffer {
+    public static final int COMMAND_STRIDE_BYTES = 16;
+
+    private ByteBuffer buffer;
     private int commandCount;
 
-    public CommandBuffer(int capacity) {
-        // Each command is 16-20 bytes (count, instanceCount, first, baseInstance)
-        this.buffer = ByteBuffer.allocateDirect(capacity * 20).order(ByteOrder.nativeOrder());
+    public CommandBuffer(int initialCapacity) {
+        if (initialCapacity <= 0) {
+            throw new IllegalArgumentException("Initial capacity must be positive");
+        }
+        this.buffer = ByteBuffer.allocateDirect(initialCapacity * COMMAND_STRIDE_BYTES)
+                .order(ByteOrder.nativeOrder());
     }
 
-    /**
-     * Adds a draw command for a specific chunk section.
-     */
     public void addCommand(int count, int instanceCount, int first, int baseInstance) {
+        ensureCapacity(COMMAND_STRIDE_BYTES);
         buffer.putInt(count);
         buffer.putInt(instanceCount);
         buffer.putInt(first);
@@ -30,9 +31,6 @@ public class CommandBuffer {
         commandCount++;
     }
 
-    /**
-     * Resets the command buffer for the next frame.
-     */
     public void reset() {
         buffer.clear();
         commandCount = 0;
@@ -42,7 +40,44 @@ public class CommandBuffer {
         return commandCount;
     }
 
+    public boolean isEmpty() {
+        return commandCount == 0;
+    }
+
     public ByteBuffer getBuffer() {
-        return buffer;
+        ByteBuffer duplicate = buffer.duplicate().order(ByteOrder.nativeOrder());
+        duplicate.flip();
+        return duplicate;
+    }
+
+    public List<int[]> snapshotCommands() {
+        ByteBuffer readable = getBuffer();
+        List<int[]> commands = new ArrayList<>(commandCount);
+        while (readable.remaining() >= COMMAND_STRIDE_BYTES) {
+            commands.add(new int[] {
+                    readable.getInt(),
+                    readable.getInt(),
+                    readable.getInt(),
+                    readable.getInt()
+            });
+        }
+        return commands;
+    }
+
+    private void ensureCapacity(int bytesNeeded) {
+        if (buffer.remaining() >= bytesNeeded) {
+            return;
+        }
+
+        int newCapacity = buffer.capacity();
+        int requiredCapacity = buffer.position() + bytesNeeded;
+        while (newCapacity < requiredCapacity) {
+            newCapacity *= 2;
+        }
+
+        ByteBuffer replacement = ByteBuffer.allocateDirect(newCapacity).order(ByteOrder.nativeOrder());
+        buffer.flip();
+        replacement.put(buffer);
+        buffer = replacement;
     }
 }

@@ -5,17 +5,16 @@ import java.util.Comparator;
 import java.util.List;
 
 /**
- * Optimizes Vulkan pipeline throughput by sorting draw calls.
- * Minimizes context switching in ANGLE's Vulkan translation.
+ * Sorts draw calls into a stable, low-state-churn order.
  */
-public class StateSorter {
+public final class StateSorter {
     private final List<DrawCall> drawCalls = new ArrayList<>();
 
-    public static class DrawCall {
-        public int shaderId;
-        public int textureId;
-        public int bufferOffset;
-        public int vertexCount;
+    public static final class DrawCall {
+        private final int shaderId;
+        private final int textureId;
+        private final int bufferOffset;
+        private final int vertexCount;
 
         public DrawCall(int shaderId, int textureId, int bufferOffset, int vertexCount) {
             this.shaderId = shaderId;
@@ -23,29 +22,42 @@ public class StateSorter {
             this.bufferOffset = bufferOffset;
             this.vertexCount = vertexCount;
         }
+
+        public int shaderId() {
+            return shaderId;
+        }
+
+        public int textureId() {
+            return textureId;
+        }
+
+        public int bufferOffset() {
+            return bufferOffset;
+        }
+
+        public int vertexCount() {
+            return vertexCount;
+        }
     }
 
-    /**
-     * Adds a draw call to the sorting queue.
-     */
     public void add(int shaderId, int textureId, int bufferOffset, int vertexCount) {
         drawCalls.add(new DrawCall(shaderId, textureId, bufferOffset, vertexCount));
     }
 
-    /**
-     * Sorts and executes all queued draw calls.
-     */
-    public void flush() {
-        // Sort by Shader first, then Texture to minimize Vulkan pipeline re-binding
-        drawCalls.sort(Comparator.comparingInt((DrawCall d) -> d.shaderId)
-                                 .thenComparingInt(d -> d.textureId));
-
-        for (DrawCall call : drawCalls) {
-            // Here: Execute the optimized draw command using MDI or glDrawArrays
-            // GLES30.glUseProgram(call.shaderId);
-            // GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, call.textureId);
-            // GLES30.glDrawArrays(GLES30.GL_TRIANGLES, call.bufferOffset, call.vertexCount);
-        }
+    public List<DrawCall> drainSorted() {
+        drawCalls.sort(Comparator.comparingInt(DrawCall::shaderId)
+                .thenComparingInt(DrawCall::textureId)
+                .thenComparingInt(DrawCall::bufferOffset));
+        List<DrawCall> sorted = new ArrayList<>(drawCalls);
         drawCalls.clear();
+        return sorted;
+    }
+
+    public int size() {
+        return drawCalls.size();
+    }
+
+    public void flush() {
+        drainSorted();
     }
 }

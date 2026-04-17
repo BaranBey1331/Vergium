@@ -1,38 +1,76 @@
 package com.vergium.core.render;
 
 import com.vergium.core.memory.MemoryManager;
-import java.util.HashSet;
 import java.util.Set;
-import org.lwjgl.opengl.GL11;
+import java.util.concurrent.ConcurrentHashMap;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.lwjgl.opengl.GL15;
 import org.lwjgl.opengl.GL20;
 import org.lwjgl.opengl.GL30;
 
 /**
- * Tracks and manages OpenGL resources to prevent memory and cache leaks.
+ * Tracks OpenGL resource ids and clears them defensively.
  */
-public class ResourceManager {
-    private static final Set<Integer> BUFFERS = new HashSet<>();
-    private static final Set<Integer> SHADERS = new HashSet<>();
-    private static final Set<Integer> VAOS = new HashSet<>();
+public final class ResourceManager {
+    private static final Logger LOGGER = LogManager.getLogger();
 
-    public static void trackBuffer(int id) { BUFFERS.add(id); }
-    public static void trackShader(int id) { SHADERS.add(id); }
-    public static void trackVAO(int id) { VAOS.add(id); }
+    private static final Set<Integer> BUFFERS = ConcurrentHashMap.newKeySet();
+    private static final Set<Integer> SHADERS = ConcurrentHashMap.newKeySet();
+    private static final Set<Integer> VAOS = ConcurrentHashMap.newKeySet();
 
-    /**
-     * Cleans up all tracked resources. Called on world unload or shutdown.
-     */
+    private ResourceManager() {
+    }
+
+    public static void trackBuffer(int id) {
+        if (id > 0) {
+            BUFFERS.add(id);
+        }
+    }
+
+    public static void trackShader(int id) {
+        if (id > 0) {
+            SHADERS.add(id);
+        }
+    }
+
+    public static void trackVAO(int id) {
+        if (id > 0) {
+            VAOS.add(id);
+        }
+    }
+
+    public static int getTrackedResourceCount() {
+        return BUFFERS.size() + SHADERS.size() + VAOS.size();
+    }
+
     public static void cleanup() {
-        BUFFERS.forEach(GL15::glDeleteBuffers);
-        SHADERS.forEach(GL20::glDeleteProgram);
-        VAOS.forEach(GL30::glDeleteVertexArrays);
-        
-        BUFFERS.clear();
-        SHADERS.clear();
-        VAOS.clear();
-        
+        deleteTrackedBuffers();
+        deleteTrackedShaders();
+        deleteTrackedVaos();
         MemoryManager.freeAll();
-        System.gc(); // Hint to clean up DirectByteBuffers
+    }
+
+    private static void deleteTrackedBuffers() {
+        BUFFERS.forEach(id -> safeDelete("buffer", id, () -> GL15.glDeleteBuffers(id)));
+        BUFFERS.clear();
+    }
+
+    private static void deleteTrackedShaders() {
+        SHADERS.forEach(id -> safeDelete("shader program", id, () -> GL20.glDeleteProgram(id)));
+        SHADERS.clear();
+    }
+
+    private static void deleteTrackedVaos() {
+        VAOS.forEach(id -> safeDelete("vao", id, () -> GL30.glDeleteVertexArrays(id)));
+        VAOS.clear();
+    }
+
+    private static void safeDelete(String kind, int id, Runnable deletion) {
+        try {
+            deletion.run();
+        } catch (Throwable throwable) {
+            LOGGER.debug("Skipping {} cleanup for id {} because no valid GL context was available.", kind, id, throwable);
+        }
     }
 }

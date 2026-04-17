@@ -1,4 +1,9 @@
-# Vergium Implementation Tasks
+# Vergium Follow-up Tasks
 
-- [ ] Task 1: Initialize Forge Project Structure
-- [ ] Task 2: Setup GitHub Actions for .jar Build
+- [ ] Replace placeholder shader compilation with validated compile/link error handling.
+- [ ] Add integration smoke tests around mixin loading and Forge startup.
+- [ ] Move GL cleanup onto explicitly safe client-thread lifecycle hooks.
+- [ ] Decide whether the fast path should remain OpenGL-backed or be renamed from `VulkanFastPath`.
+- [ ] Implement a real batched submission path instead of staging-only flush resets.
+- [ ] Add metrics/logging around pooled buffer pressure and tracked native memory.
+- [ ] Expand entity instancing to use bounded per-type growth strategies.

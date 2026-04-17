@@ -1,72 +1,75 @@
 package com.vergium.core.memory;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 
 /**
- * A specialized wrapper for native memory buffers to provide fast vertex data packing.
+ * Growable native buffer wrapper with deterministic write offsets.
  */
-public class NativeBuffer {
-    private final ByteBuffer buffer;
+public final class NativeBuffer {
+    private ByteBuffer buffer;
     private int position;
 
     public NativeBuffer(int initialSize) {
+        if (initialSize <= 0) {
+            throw new IllegalArgumentException("Initial size must be positive");
+        }
         this.buffer = MemoryManager.allocate(initialSize);
         this.position = 0;
     }
 
-    public void putFloat(float f) {
-        buffer.putFloat(position, f);
-        position += 4;
+    public void putFloat(float value) {
+        ensureWritable(Float.BYTES);
+        buffer.putFloat(position, value);
+        position += Float.BYTES;
     }
 
-    public void putInt(int i) {
-        buffer.putInt(position, i);
-        position += 4;
+    public void putInt(int value) {
+        ensureWritable(Integer.BYTES);
+        buffer.putInt(position, value);
+        position += Integer.BYTES;
     }
 
-    public void putByte(byte b) {
-        buffer.put(position, b);
-        position += 1;
+    public void putByte(byte value) {
+        ensureWritable(Byte.BYTES);
+        buffer.put(position, value);
+        position += Byte.BYTES;
     }
 
-    public void putShort(short s) {
-        buffer.putShort(position, s);
-        position += 2;
+    public void putShort(short value) {
+        ensureWritable(Short.BYTES);
+        buffer.putShort(position, value);
+        position += Short.BYTES;
     }
 
-    /**
-     * Packs two float values into a single integer using short precision.
-     * Efficient for UV coordinates to save bandwidth.
-     */
     public void putPackedUV(float u, float v) {
-        short su = (short) (u * 65535.0f);
-        short sv = (short) (v * 65535.0f);
-        buffer.putShort(position, su);
-        buffer.putShort(position + 2, sv);
-        position += 4;
+        int encodedU = Math.round(clamp(u, 0.0f, 1.0f) * 65535.0f);
+        int encodedV = Math.round(clamp(v, 0.0f, 1.0f) * 65535.0f);
+        putShort((short) encodedU);
+        putShort((short) encodedV);
     }
 
-    /**
-     * Packs three float coordinates into byte values if they are within a small range.
-     * Used for local block offsets.
-     */
     public void putPackedPos(float x, float y, float z) {
-        buffer.put(position, (byte) (x * 127.0f));
-        buffer.put(position + 1, (byte) (y * 127.0f));
-        buffer.put(position + 2, (byte) (z * 127.0f));
+        ensureWritable(3);
+        buffer.put(position, toSignedByte(x));
+        buffer.put(position + 1, toSignedByte(y));
+        buffer.put(position + 2, toSignedByte(z));
         position += 3;
     }
 
-    /**
-     * Resets the buffer position for the next frame or batch.
-     */
     public void reset() {
         position = 0;
-        buffer.clear();
     }
 
     public ByteBuffer getByteBuffer() {
-        return buffer;
+        return buffer.duplicate().order(ByteOrder.nativeOrder());
+    }
+
+    public ByteBuffer readableSlice() {
+        ByteBuffer duplicate = getByteBuffer();
+        duplicate.position(0);
+        duplicate.limit(position);
+        return duplicate.slice().order(ByteOrder.nativeOrder());
     }
 
     public int getPosition() {
@@ -75,5 +78,35 @@ public class NativeBuffer {
 
     public int getCapacity() {
         return buffer.capacity();
+    }
+
+    public boolean isEmpty() {
+        return position == 0;
+    }
+
+    private void ensureWritable(int bytes) {
+        if (position + bytes <= buffer.capacity()) {
+            return;
+        }
+
+        int newCapacity = buffer.capacity();
+        while (position + bytes > newCapacity) {
+            newCapacity = Math.max(newCapacity * 2, position + bytes);
+        }
+
+        ByteBuffer replacement = MemoryManager.allocate(newCapacity);
+        ByteBuffer source = readableSlice();
+        replacement.put(source);
+        MemoryManager.free(buffer);
+        buffer = replacement;
+    }
+
+    private static float clamp(float value, float min, float max) {
+        return Math.max(min, Math.min(max, value));
+    }
+
+    private static byte toSignedByte(float value) {
+        int scaled = Math.round(clamp(value, -1.0f, 1.0f) * 127.0f);
+        return (byte) scaled;
     }
 }

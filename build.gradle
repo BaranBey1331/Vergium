@@ -6,7 +6,7 @@ plugins {
 }
 
 group = 'com.vergium'
-version = '0.1.0'
+version = '2.1.0'
 
 base {
     archivesName = 'vergium'
@@ -58,6 +58,8 @@ repositories {
 dependencies {
     minecraft 'net.minecraftforge:forge:1.20.1-47.2.0'
     annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
+    testImplementation platform('org.junit:junit-bom:5.10.2')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
 }
 
 tasks.named('processResources', ProcessResources).configure {
@@ -70,7 +72,7 @@ tasks.named('processResources', ProcessResources).configure {
             mod_id: 'vergium',
             mod_name: 'Vergium',
             mod_license: 'MIT',
-            mod_version: '0.1.0',
+            mod_version: '2.1.0',
             mod_authors: 'BaranBey1331',
             mod_description: 'High-performance optimization mod for Xclipse 940 GPU.'
     ]
@@ -84,4 +86,11 @@ tasks.named('processResources', ProcessResources).configure {
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
+}
+
+tasks.named('test', Test).configure {
+    useJUnitPlatform()
+    testLogging {
+        events "passed", "skipped", "failed"
+    }
 }

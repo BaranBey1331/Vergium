@@ -1,0 +1,5 @@
+.omx/
+.gradle/
+build/
+logs/
+run/

@@ -1,26 +1,57 @@
 # Vergium
 
-Vergium, Minecraft 1.20.1 Forge için geliştirilmiş, yüksek performanslı ve sızıntısız (leak-free) bir optimizasyon modudur. Özellikle **Samsung Xclipse 940 (AMD RDNA 3)** mimarisi ve **Vulkan (ANGLE)** sürücüleri için baştan sona tasarlanmış profesyonel bir rendering pipeline'ı sunar.
+Vergium is a Forge mod targeting **Minecraft 1.20.1** and **Java 17** with a focus on safer render-side experimentation, lower allocation churn, and more predictable lifecycle cleanup.
 
-## 🌟 v1.3.0 Major Özellikleri
+## What changed in the 2.1.0 major update?
 
-- **Vulkan Fast-Path:** Xclipse 940'ın donanımsal yeteneklerini kullanarak ANGLE katmanındaki darboğazları en aza indiren özel çizim hattı.
-- **Zero-Allocation Memory:** `BufferPool` mimarisi ile her frame'de yeni bellek alanı açmak yerine mevcut alanları geri dönüştürür. Bu, Java GC kaynaklı takılmaları (stutter) ve bellek sızıntılarını (leak) tamamen ortadan kaldırır.
-- **Universal Mod-Bridge:** Ağır mod paketlerinde (Twilight Forest, Alex's Mobs vb.) ortaya çıkan dağınık render isteklerini merkezi bir sistemde toplayıp optimize eder.
-- **Robust Resource Management:** Merkezi `ResourceManager` sayesinde oyunun kapanışı veya dünya geçişleri sırasında tüm donanım kaynakları %100 temizlenir.
+This update replaces several placeholder or misleading optimization paths with safer, verifiable behavior:
 
-## 🛠 Teknik Mimari
+- growable native buffers instead of unchecked writes
+- tracked direct-memory accounting instead of exposed global internals
+- reusable transient bridge buffers with explicit pool limits
+- readable command buffers for indirect draw uploads
+- safer fast-path dispatch that degrades when no GL context exists
+- lifecycle cleanup that resets Vergium state consistently on level unload
+- reduced mixin risk by removing the brittle section-bounds mutation path
+- first automated unit-test suite for pure Java infrastructure
+- refreshed changelog, TODO list, and integrity checks
 
-Vergium, Minecraft'ın standart render döngüsünü modern Vulkan prensiplerine dönüştürür:
-1. **Batching:** Binlerce çizim komutu yerine tek bir "Indirect" çizim.
-2. **State Sorting:** Shader ve texture değişimlerini minimize eden akıllı sıralama.
-3. **Occlusion Culling:** Görünmeyen her şeyi (blok, mob, parçacık) GPU'ya ulaşmadan eleme.
+## Current architecture
 
-## 🚀 Kurulum ve Uyumluluk
+Vergium currently contains these main subsystems:
 
-- **Forge:** 1.20.1 (Tüm sürümlerle uyumlu).
-- **GPU:** Samsung Xclipse 940 önerilir (Tüm GLES 3.2 cihazları destekler).
-- **Launcher:** PojavLauncher veya Zalith Launcher üzerinde **ANGLE (Vulkan)** modu seçilmelidir.
+1. **Memory primitives**
+   - `MemoryManager`
+   - `NativeBuffer`
+   - `BufferPool`
+2. **Render staging**
+   - `VergiumBatchRenderer`
+   - `CommandBuffer`
+   - `StateSorter`
+3. **Runtime helpers**
+   - `VisibilityManager`
+   - `ResourceManager`
+   - `BottleneckProfiler`
+4. **Experimental fast path**
+   - `VergiumRenderDispatcher`
+   - `VulkanFastPath`
 
-## 📝 Lisans
+## Build
+
+```bash
+./gradlew test build
+```
+
+## Integrity check
+
+```bash
+./check_integrity.sh
+```
+
+## Status
+
+Vergium is still an experimental optimization project. The 2.1.0 release focuses on **correctness, cleanup, and testability first**, not on claiming finished engine replacement work that the code does not yet implement.
+
+## License
+
 MIT

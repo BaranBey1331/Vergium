@@ -12,15 +12,26 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(EntityRenderDispatcher.class)
 public class MixinEntityRenderDispatcher {
 
-    /**
-     * Prevents rendering of entities that are not visible to the camera.
-     * Reduces draw calls and CPU overhead on mobile launchers.
-     */
     @Inject(method = "render", at = @At("HEAD"), cancellable = true)
-    private void onRenderEntity(Entity entity, double x, double y, double z, float yaw, float partialTicks, com.mojang.blaze3d.vertex.PoseStack poseStack, net.minecraft.client.renderer.MultiBufferSource bufferSource, int light, CallbackInfo ci) {
+    private void onRenderEntity(
+            Entity entity,
+            double x,
+            double y,
+            double z,
+            float yaw,
+            float partialTicks,
+            com.mojang.blaze3d.vertex.PoseStack poseStack,
+            net.minecraft.client.renderer.MultiBufferSource bufferSource,
+            int light,
+            CallbackInfo ci
+    ) {
+        if (entity == null) {
+            return;
+        }
+
         AABB aabb = entity.getBoundingBoxForCulling();
-        if (!VisibilityManager.isVisibleInFrustum(aabb)) {
-            ci.cancel(); // "Gereksiz" entity çizimini durdur.
+        if (aabb != null && aabb.getSize() > 0.0D && !VisibilityManager.isVisibleInFrustum(aabb)) {
+            ci.cancel();
         }
     }
 }

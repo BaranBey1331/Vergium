@@ -1,60 +1,85 @@
 package com.vergium.core.render;
 
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicInteger;
+import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL15;
 import org.lwjgl.opengl.GL33;
-import java.util.LinkedList;
-import java.util.Queue;
 
 /**
- * Manages OpenGL Occlusion Queries.
- * Used to determine if a chunk is hidden by other geometry.
- * Compatible with standard LWJGL used by Minecraft.
+ * Query-id recycler with no-context fallbacks.
  */
-public class OcclusionQueryManager {
-    private static final Queue<Integer> QUERY_POOL = new LinkedList<>();
+public final class OcclusionQueryManager {
+    private static final int MAX_POOLED_QUERIES = 1024;
 
-    /**
-     * Acquires a query ID from the pool or generates a new one.
-     */
+    private static final Queue<Integer> QUERY_POOL = new ConcurrentLinkedQueue<>();
+    private static final AtomicInteger QUERY_COUNT = new AtomicInteger();
+
+    private OcclusionQueryManager() {
+    }
+
     public static int acquireQuery() {
-        if (QUERY_POOL.isEmpty()) {
-            return GL15.glGenQueries();
+        if (!isGlContextAvailable()) {
+            return 0;
         }
-        return QUERY_POOL.poll();
+
+        Integer pooled = QUERY_POOL.poll();
+        if (pooled != null) {
+            QUERY_COUNT.decrementAndGet();
+            return pooled;
+        }
+        return GL15.glGenQueries();
     }
 
-    /**
-     * Returns a query ID to the pool for reuse.
-     */
     public static void releaseQuery(int queryId) {
-        QUERY_POOL.add(queryId);
+        if (queryId <= 0) {
+            return;
+        }
+
+        while (true) {
+            int current = QUERY_COUNT.get();
+            if (current >= MAX_POOLED_QUERIES) {
+                return;
+            }
+            if (QUERY_COUNT.compareAndSet(current, current + 1)) {
+                QUERY_POOL.offer(queryId);
+                return;
+            }
+        }
     }
 
-    /**
-     * Starts an occlusion query.
-     */
     public static void beginQuery(int queryId) {
-        GL15.glBeginQuery(GL33.GL_ANY_SAMPLES_PASSED, queryId);
+        if (queryId > 0 && isGlContextAvailable()) {
+            GL15.glBeginQuery(GL33.GL_ANY_SAMPLES_PASSED, queryId);
+        }
     }
 
-    /**
-     * Ends the current occlusion query.
-     */
     public static void endQuery() {
-        GL15.glEndQuery(GL33.GL_ANY_SAMPLES_PASSED);
+        if (isGlContextAvailable()) {
+            GL15.glEndQuery(GL33.GL_ANY_SAMPLES_PASSED);
+        }
     }
 
-    /**
-     * Checks if the results of a query are available.
-     */
     public static boolean isResultAvailable(int queryId) {
+        if (queryId <= 0 || !isGlContextAvailable()) {
+            return false;
+        }
         return GL15.glGetQueryObjecti(queryId, GL15.GL_QUERY_RESULT_AVAILABLE) != 0;
     }
 
-    /**
-     * Gets the result of an occlusion query (number of samples passed).
-     */
     public static int getQueryResult(int queryId) {
+        if (queryId <= 0 || !isGlContextAvailable()) {
+            return 0;
+        }
         return GL15.glGetQueryObjecti(queryId, GL15.GL_QUERY_RESULT);
+    }
+
+    private static boolean isGlContextAvailable() {
+        try {
+            return GL.getCapabilities() != null;
+        } catch (IllegalStateException ex) {
+            return false;
+        }
     }
 }
